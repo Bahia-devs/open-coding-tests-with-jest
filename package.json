@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "jest --runInBand",
+    "test:cov": "jest --coverage --runInBand",
     "start": "tsx watch src/server.ts",
     "run:script": "tsx ./src/main.ts"
   },

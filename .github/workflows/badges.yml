@@ -1,0 +1,83 @@
+# This workflow will do a clean installation of node dependencies, cache/restore them, build the source code and run tests across different versions of node
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-nodejs
+
+name: Badges CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [18.15.0]
+        # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+
+    - name: Creating .env.test
+      run: cp .env.example .env.test
+    
+    - name: Installing dependencies
+      run: npm ci
+
+    - name: Running tests
+      run: npm test
+  
+  coverage:
+    needs: [unit-tests]
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [18.15.0]
+        # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+
+    - name: Check if branch exists and delete it
+      run: |
+        BRANCH_NAME="badges"
+        if git ls-remote --heads origin $BRANCH_NAME | grep -q $BRANCH_NAME; then
+          echo "Branch $BRANCH_NAME exists. Deleting it."
+          git push origin --delete $BRANCH_NAME
+        fi
+
+    - name: Create badges branch
+      run: git checkout -b badges
+
+    - name: Creating .env.test
+      run: cp .env.example .env.test
+    
+    - name: Installing dependencies
+      run: npm ci
+
+    - name: Running coverage
+      run: npm run test:cov
+
+    - name: Generating coverage badges
+      uses: jpb06/jest-badges-action@latest
+      with:
+        branches: '*'
+        target-branch: badges
+        commit-message: "chore: creating badges"
+
+    - name: Push badges branch
+      run: git push origin badges
